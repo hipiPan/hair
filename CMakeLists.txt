@@ -12,7 +12,7 @@ add_subdirectory(extern/spark EXCLUDE_FROM_ALL spark.out)
 target_link_libraries(hair PUBLIC spark)
 
 # Imath
-include(extern/Imath/VS2015/x64/lib/cmake/Imath/ImathConfig.cmake)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/extern/Imath/VS2015/x64/lib/cmake/Imath)
 
 # alembic
 add_subdirectory(extern/alembic EXCLUDE_FROM_ALL alembic.out)
