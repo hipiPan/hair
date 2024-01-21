@@ -1,4 +1,6 @@
 #include "hair_asset.h"
+#include "hair_instance.h"
+#include "rhi/ez_vulkan.h"
 
 int HairAsset::add_vertex()
 {
@@ -22,4 +24,9 @@ int HairAsset::add_strand()
 void HairAsset::set_stand_vertex_count(int id, int count)
 {
     _vertex_counts[id] = count;
+}
+
+HairInstance* HairAsset::create_instance()
+{
+    return nullptr;
 }

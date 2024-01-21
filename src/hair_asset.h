@@ -2,6 +2,8 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+class HairInstance;
+
 class HairAsset
 {
 public:
@@ -10,6 +12,8 @@ public:
 
     int add_strand();
     void set_stand_vertex_count(int id, int count);
+
+    HairInstance* create_instance();
 
 private:
     // Vertex attribute
