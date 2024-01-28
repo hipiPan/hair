@@ -1,53 +1,102 @@
 #include "hair_asset.h"
 #include "hair_instance.h"
 #include "rhi/ez_vulkan.h"
+#include <unordered_map>
 
-int HairAsset::add_vertex()
+int HairAsset::Builder::add_vertex()
 {
     _positions.push_back(glm::vec3(0.0f));
     return _num_vertices++;
 }
 
-void HairAsset::set_vertex_position(int id, const glm::vec3& pos)
+int HairAsset::Builder::get_num_vertices()
+{
+    return _num_vertices;
+}
+
+void HairAsset::Builder::set_vertex_position(int id, const glm::vec3& pos)
 {
     _positions[id] = pos;
 }
 
-int HairAsset::add_strand()
+int HairAsset::Builder::add_strand()
 {
     _vertex_counts.push_back(0);
+    _vertex_offsets.push_back(0);
     return _num_strands++;
 }
 
-void HairAsset::set_stand_vertex_count(int id, int count)
+void HairAsset::Builder::set_stand_vertex_count(int id, int count)
 {
     _vertex_counts[id] = count;
 }
 
-void HairAsset::finalize_build()
+void HairAsset::Builder::set_stand_vertex_offset(int id, int offset)
 {
-    // Build strips
-    for (int i = 0, segment_base = 0; i < _num_strands; ++i, segment_base += 2)
+    _vertex_offsets[id] = offset;
+}
+
+HairAsset* HairAsset::Builder::build()
+{
+    HairAsset* asset = new HairAsset();
+
+    // Build strand groups
+    int vertex_count = 0;
+    int vertex_offset = 0;
+    StrandGroup* strand_group = nullptr;
+    std::unordered_map<int, StrandGroup*> strand_group_dict;
+    for (int i = 0; i < _num_strands; i++)
     {
-        int strand_particle_count = _vertex_counts[i];
+        vertex_count = _vertex_counts[i];
+        vertex_offset = _vertex_offsets[i];
+        if (strand_group_dict.find(vertex_count) == strand_group_dict.end())
+        {
+            strand_group = new StrandGroup();
+            strand_group_dict[vertex_count] = strand_group;
+        }
+
+        strand_group->strand_count++;
+        strand_group->strand_particle_count = vertex_count;
+        strand_group->positions.insert(strand_group->positions.end(), _positions.data() + vertex_offset, _positions.data() + vertex_offset + vertex_count);
+    }
+
+    for (auto iter : strand_group_dict)
+    {
+        strand_group = iter.second;
+
+        // Build strips
+        int strand_particle_count = strand_group->strand_particle_count;
         int strip_vertex_count = strand_particle_count * 2;
         int strip_segment_count = strand_particle_count - 1;
         int strip_triangle_count = strip_segment_count * 2;
         int strip_index_count = strip_triangle_count * 3;
-        for (int j = 0; j < strip_segment_count; ++j, segment_base += 2)
+        for (int i = 0, segment_base = 0; i < strand_group->strand_count; ++i, segment_base += 2)
         {
-            // First Triangle
-            _indices.push_back(segment_base + 0);
-            _indices.push_back(segment_base + 3);
-            _indices.push_back(segment_base + 1);
+            for (int j = 0; j < strip_segment_count; ++j, segment_base += 2)
+            {
+                // First Triangle
+                strand_group->indices.push_back(segment_base + 0);
+                strand_group->indices.push_back(segment_base + 3);
+                strand_group->indices.push_back(segment_base + 1);
 
-            // Second Triangle
-            _indices.push_back(segment_base + 0);
-            _indices.push_back(segment_base + 2);
-            _indices.push_back(segment_base + 3);
+                // Second Triangle
+                strand_group->indices.push_back(segment_base + 0);
+                strand_group->indices.push_back(segment_base + 2);
+                strand_group->indices.push_back(segment_base + 3);
+            }
         }
+
+        asset->_strand_groups.push_back(strand_group);
     }
+
+    return asset;
 }
+
+HairAsset::HairAsset()
+{}
+
+HairAsset::~HairAsset()
+{}
 
 EzBuffer create_rw_buffer(void* data, uint32_t data_size, VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
 {
@@ -82,7 +131,14 @@ EzBuffer create_rw_buffer(void* data, uint32_t data_size, VkBufferUsageFlags usa
 HairInstance* HairAsset::create_instance()
 {
     HairInstance* instance = new HairInstance();
-    instance->position_buffer = create_rw_buffer(_positions.data(), _positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    instance->index_buffer = create_rw_buffer(_indices.data(), _indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    for (auto strand_group : _strand_groups)
+    {
+        HairInstance::StrandGroup* strand_group_ins = new HairInstance::StrandGroup();
+        strand_group_ins->strand_count = strand_group->strand_count;
+        strand_group_ins->strand_particle_count = strand_group->strand_particle_count;
+        strand_group_ins->position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->index_buffer = create_rw_buffer(strand_group->indices.data(), strand_group->indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        instance->strand_groups.push_back(strand_group_ins);
+    }
     return instance;
 }

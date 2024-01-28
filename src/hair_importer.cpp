@@ -6,7 +6,7 @@
 #include "Alembic/Abc/IObject.h"
 #include <glm/glm.hpp>
 
-void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, const glm::mat4& parent_matrix, HairAsset* hair_asset)
+void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, const glm::mat4& parent_matrix, HairAsset::Builder* builder)
 {
     const Alembic::Abc::MetaData object_meta_data = abc_object.getMetaData();
     const uint32_t num_children = abc_object.getNumChildren();
@@ -25,14 +25,15 @@ void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, con
         for (int curve_index = 0; curve_index < num_curves; ++curve_index)
         {
             const int curve_num_vertices = (*num_vertices)[curve_index];
-            int strand_id = hair_asset->add_strand();
-            hair_asset->set_stand_vertex_count(strand_id, curve_num_vertices);
+            int strand_id = builder->add_strand();
+            builder->set_stand_vertex_count(strand_id, curve_num_vertices);
+            builder->set_stand_vertex_offset(strand_id, builder->get_num_vertices());
 
             for (int point_index = 0; point_index < curve_num_vertices; ++point_index, ++global_index)
             {
-                int vertex_id = hair_asset->add_vertex();
+                int vertex_id = builder->add_vertex();
                 Alembic::Abc::P3fArraySample::value_type position = (*positions)[global_index];
-                hair_asset->set_vertex_position(vertex_id, glm::vec3(position.x, position.y, position.z));
+                builder->set_vertex_position(vertex_id, glm::vec3(position.x, position.y, position.z));
             }
         }
     }
@@ -41,7 +42,7 @@ void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, con
     {
         for (int i = 0; i < num_children; ++i)
         {
-            parse_object(abc_object.getChild(i), frame_time, local_matrix, hair_asset);
+            parse_object(abc_object.getChild(i), frame_time, local_matrix, builder);
         }
     }
 }
@@ -68,10 +69,8 @@ HairAsset* load_hair_asset(const std::string& file_path)
         return nullptr;
     }
 
-    HairAsset* hair_asset = new HairAsset();
+    HairAsset::Builder builder;
     glm::mat4 parent_matrix = glm::mat4(1.0f);
-    parse_object(top_object, 0.0f, parent_matrix, hair_asset);
-    hair_asset->finalize_build();
-
-    return hair_asset;
+    parse_object(top_object, 0.0f, parent_matrix, &builder);
+    return builder.build();
 }
