@@ -71,6 +71,7 @@ HairAsset* load_hair_asset(const std::string& file_path)
     HairAsset* hair_asset = new HairAsset();
     glm::mat4 parent_matrix = glm::mat4(1.0f);
     parse_object(top_object, 0.0f, parent_matrix, hair_asset);
+    hair_asset->finalize_build();
 
     return hair_asset;
 }

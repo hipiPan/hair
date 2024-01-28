@@ -13,14 +13,18 @@ public:
     int add_strand();
     void set_stand_vertex_count(int id, int count);
 
+    void finalize_build();
+
     HairInstance* create_instance();
 
 private:
     // Vertex attribute
-    int _next_vertex_id = -1;
+    int _num_vertices = 0;
     std::vector<glm::vec3> _positions;
 
     // Strand attribute
-    int _next_strand_id = -1;
+    int _num_strands = 0;
     std::vector<int> _vertex_counts;
+
+    std::vector<uint32_t> _indices;
 };
