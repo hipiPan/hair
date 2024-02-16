@@ -9,8 +9,7 @@ struct ViewBufferType
 {
     glm::mat4 view_matrix;
     glm::mat4 proj_matrix;
-    glm::mat4 pad0;
-    glm::mat4 pad1;
+    glm::vec4 view_position;
 };
 
 class Renderer

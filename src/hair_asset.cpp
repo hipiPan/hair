@@ -26,6 +26,11 @@ int HairAsset::Builder::add_strand()
     return _num_strands++;
 }
 
+int HairAsset::Builder::get_num_strands()
+{
+    return _num_strands;
+}
+
 void HairAsset::Builder::set_stand_vertex_count(int id, int count)
 {
     _vertex_counts[id] = count;
@@ -57,14 +62,17 @@ HairAsset* HairAsset::Builder::build()
 
         strand_group->strand_count++;
         strand_group->strand_particle_count = vertex_count;
-        strand_group->positions.insert(strand_group->positions.end(), _positions.data() + vertex_offset, _positions.data() + vertex_offset + vertex_count);
+        for (int j = vertex_offset; j < vertex_offset + vertex_count; ++j)
+        {
+            strand_group->positions.push_back(_positions[j]);
+        }
     }
 
     for (auto iter : strand_group_dict)
     {
         strand_group = iter.second;
 
-        // Build strips
+        // Build indices
         int strand_particle_count = strand_group->strand_particle_count;
         int strip_vertex_count = strand_particle_count * 2;
         int strip_segment_count = strand_particle_count - 1;
@@ -136,6 +144,7 @@ HairInstance* HairAsset::create_instance()
         HairInstance::StrandGroup* strand_group_ins = new HairInstance::StrandGroup();
         strand_group_ins->strand_count = strand_group->strand_count;
         strand_group_ins->strand_particle_count = strand_group->strand_particle_count;
+        strand_group_ins->index_count = strand_group->indices.size();
         strand_group_ins->position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->index_buffer = create_rw_buffer(strand_group->indices.data(), strand_group->indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         instance->strand_groups.push_back(strand_group_ins);

@@ -64,6 +64,7 @@ void Renderer::update_view_buffer()
     ViewBufferType view_buffer_type{};
     view_buffer_type.view_matrix = view_matrix;
     view_buffer_type.proj_matrix = proj_matrix;
+    view_buffer_type.view_position = glm::vec4(_camera->get_translation(), 1.0f);
 
     VkBufferMemoryBarrier2 barrier = ez_buffer_barrier(_view_buffer, EZ_RESOURCE_STATE_COPY_DEST);
     ez_pipeline_barrier(0, 1, &barrier, 0, nullptr);

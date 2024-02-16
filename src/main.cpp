@@ -36,6 +36,7 @@ int main()
 {
     Path::register_protocol("content", std::string(PROJECT_DIR) + "/content/");
     Path::register_protocol("hair", std::string(PROJECT_DIR) + "/content/hair/");
+    Path::register_protocol("shader", std::string(PROJECT_DIR) + "/content/shader/");
 
     int init_width = 1024, init_height = 768;
     glfwInit();
@@ -57,8 +58,8 @@ int main()
 
     Camera* camera = new Camera();
     camera->set_aspect((float)init_width/(float)init_height);
-    camera->set_translation(glm::vec3(1.28223431f, 13.497385f, -5.47421837f));
-    camera->set_euler(glm::vec3(-1.66900015f, -0.0499999598f, 0.0f));
+    camera->set_translation(glm::vec3(0.0f, 0.0f, 20.0f));
+    camera->set_euler(glm::vec3(0.0f, 0.0f, 0.0f));
     CameraController* camera_controller = new CameraController();
     camera_controller->set_camera(camera);
 

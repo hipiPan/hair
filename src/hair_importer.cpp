@@ -5,6 +5,15 @@
 #include "Alembic/Abc/IArchive.h"
 #include "Alembic/Abc/IObject.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+
+glm::vec3 transform_point(const glm::vec3& point, const glm::mat4& mat)
+{
+    glm::vec4 p0 = glm::vec4(point.x, point.y, point.z, 1.0f);
+    glm::vec4 p1 = mat * p0;
+    return glm::vec3(p1.x, p1.y, p1.z) / p1.w;
+}
 
 void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, const glm::mat4& parent_matrix, HairAsset::Builder* builder)
 {
@@ -33,7 +42,7 @@ void parse_object(const Alembic::Abc::IObject& abc_object, float frame_time, con
             {
                 int vertex_id = builder->add_vertex();
                 Alembic::Abc::P3fArraySample::value_type position = (*positions)[global_index];
-                builder->set_vertex_position(vertex_id, glm::vec3(position.x, position.y, position.z));
+                builder->set_vertex_position(vertex_id, transform_point(glm::vec3(position.x, position.y, position.z), local_matrix));
             }
         }
     }
@@ -70,7 +79,7 @@ HairAsset* load_hair_asset(const std::string& file_path)
     }
 
     HairAsset::Builder builder;
-    glm::mat4 parent_matrix = glm::mat4(1.0f);
+    glm::mat4 parent_matrix = glm::scale(glm::mat4(1.0), glm::vec3(0.1));
     parse_object(top_object, 0.0f, parent_matrix, &builder);
     return builder.build();
 }

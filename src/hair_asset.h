@@ -29,6 +29,7 @@ public:
         void set_vertex_position(int id, const glm::vec3& pos);
 
         int add_strand();
+        int get_num_strands();
         void set_stand_vertex_count(int id, int count);
         void set_stand_vertex_offset(int id, int offset);
 

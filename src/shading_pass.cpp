@@ -1,5 +1,6 @@
 #include "shading_pass.h"
 #include "renderer.h"
+#include "hair_instance.h"
 #include <rhi/shader_manager.h>
 
 ShadingPass::ShadingPass(Renderer* renderer)
@@ -34,6 +35,28 @@ void ShadingPass::render()
     rendering_info.colors.push_back(color_info);
     rendering_info.depth.push_back(depth_info);
     ez_begin_rendering(rendering_info);
-    // TODO
+
+    ez_set_viewport(0, 0, (float)_renderer->_width, (float)_renderer->_height);
+    ez_set_scissor(0, 0, (int32_t)_renderer->_width, (int32_t)_renderer->_height);
+
+    ez_set_vertex_shader(ShaderManager::get()->get_shader("shader://hair_shading.vert"));
+    ez_set_fragment_shader(ShaderManager::get()->get_shader("shader://hair_shading.frag"));
+
+    HairInstance* hair_instance = _renderer->_hair_instance;
+    HairConstantBlock hair_constant{};
+    hair_constant.particle_diameter = 0.1f;
+    for (auto strand_group : hair_instance->strand_groups)
+    {
+        hair_constant.strand_particle_stride = 1;
+        hair_constant.strand_particle_count = strand_group->strand_particle_count;
+        ez_push_constants(&hair_constant, sizeof(HairConstantBlock), 0);
+
+        ez_bind_buffer(0, _renderer->_view_buffer, _renderer->_view_buffer->size);
+        ez_bind_buffer(1, strand_group->position_buffer, strand_group->position_buffer->size);
+        ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
+        ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        ez_draw_indexed(strand_group->index_count, 0, 0);
+    }
+
     ez_end_rendering();
 }
