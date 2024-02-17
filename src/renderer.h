@@ -19,7 +19,7 @@ public:
 
     ~Renderer();
 
-    void render(EzSwapchain swapchain);
+    void render(EzSwapchain swapchain, float dt);
 
     void set_hair_instance(HairInstance* ins);
 
@@ -38,6 +38,8 @@ private:
     EzBuffer _view_buffer = VK_NULL_HANDLE;
     EzTexture _color_rt = VK_NULL_HANDLE;
     EzTexture _depth_rt = VK_NULL_HANDLE;
+    friend class SimulationPass;
+    SimulationPass* _simulation_pass = nullptr;
     friend class ShadingPass;
     ShadingPass* _shading_pass = nullptr;
 };

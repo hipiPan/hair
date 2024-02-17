@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "camera.h"
 #include "hair_instance.h"
+#include "simulation_pass.h"
 #include "shading_pass.h"
 
 Renderer::Renderer()
@@ -11,12 +12,14 @@ Renderer::Renderer()
     buffer_desc.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     ez_create_buffer(buffer_desc, _view_buffer);
 
+    _simulation_pass = new SimulationPass(this);
     _shading_pass = new ShadingPass(this);
 }
 
 Renderer::~Renderer()
 {
     delete _shading_pass;
+    delete _simulation_pass;
 
     if (_view_buffer)
         ez_destroy_buffer(_view_buffer);
@@ -75,7 +78,7 @@ void Renderer::update_view_buffer()
     ez_pipeline_barrier(0, 1, &barrier, 0, nullptr);
 }
 
-void Renderer::render(EzSwapchain swapchain)
+void Renderer::render(EzSwapchain swapchain, float dt)
 {
     if (!_hair_instance || !_camera)
         return;
@@ -92,7 +95,8 @@ void Renderer::render(EzSwapchain swapchain)
 
     update_view_buffer();
 
-    _shading_pass->render();
+    _simulation_pass->execute(dt);
+    _shading_pass->execute();
 
     // Copy to swapchain
     EzTexture src_rt = _color_rt;

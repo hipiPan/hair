@@ -10,7 +10,7 @@ public:
 
     ~ShadingPass();
 
-    void render();
+    void execute();
 
 private:
     Renderer* _renderer;

@@ -67,8 +67,13 @@ int main()
     renderer->set_camera(camera);
     renderer->set_hair_instance(hair_instance);
 
+    double time = 0.0;
     while (!glfwWindowShouldClose(glfw_window))
     {
+        double current_time = glfwGetTime();
+        float dt = time > 0.0 ? (float)(current_time - time) : (float)(1.0f / 60.0f);
+        time = current_time;
+
         glfwPollEvents();
 
         EzSwapchainStatus swapchain_status = ez_update_swapchain(swapchain);
@@ -83,7 +88,7 @@ int main()
 
         ez_acquire_next_image(swapchain);
 
-        renderer->render(swapchain);
+        renderer->render(swapchain, dt);
 
         VkImageMemoryBarrier2 present_barrier[] = { ez_image_barrier(swapchain, EZ_RESOURCE_STATE_PRESENT) };
         ez_pipeline_barrier(0, 0, nullptr, 1, present_barrier);

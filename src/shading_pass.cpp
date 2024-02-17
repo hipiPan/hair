@@ -12,7 +12,7 @@ ShadingPass::~ShadingPass()
 {
 }
 
-void ShadingPass::render()
+void ShadingPass::execute()
 {
     ez_reset_pipeline_state();
 
@@ -44,7 +44,7 @@ void ShadingPass::render()
 
     HairInstance* hair_instance = _renderer->_hair_instance;
     HairConstantBlock hair_constant{};
-    hair_constant.particle_diameter = 0.1f;
+    hair_constant.particle_diameter = 0.02f;
     for (auto strand_group : hair_instance->strand_groups)
     {
         hair_constant.strand_particle_stride = 1;
