@@ -3,6 +3,8 @@
 #include "hair_instance.h"
 #include <rhi/shader_manager.h>
 
+#define PARTICLE_GROUP_SIZE 64
+
 SimulationPass::SimulationPass(Renderer* renderer)
 {
     _renderer = renderer;
@@ -18,6 +20,11 @@ float SimulationPass::get_simulation_timestep()
     return 0.0333f;
 }
 
+void SimulationPass::initialize()
+{
+
+}
+
 void SimulationPass::execute(float dt)
 {
     float step_dt = get_simulation_timestep();
@@ -30,4 +37,10 @@ void SimulationPass::execute(float dt)
 
     if (step_count <= 0)
         return;
+
+    if (!_initialized)
+    {
+        initialize();
+        _initialized = true;
+    }
 }

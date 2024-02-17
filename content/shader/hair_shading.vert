@@ -1,7 +1,7 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
 
-#define normalize_safe(x) (x * inversesqrt(max(1e-7, dot(x, x))))
+#include "hair_shader_defs.glsl"
 
 layout(std140, binding = 0) uniform ViewBuffer
 {
@@ -22,6 +22,7 @@ layout(std430, binding = 1) restrict readonly buffer VertexDataBufferBlock
 
 layout(push_constant) uniform ConstantBlock
 {
+    uint strand_count;
     uint strand_particle_count;
     uint strand_particle_stride;
     float particle_diameter;

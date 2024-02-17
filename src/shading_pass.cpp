@@ -49,10 +49,11 @@ void ShadingPass::execute()
     {
         hair_constant.strand_particle_stride = 1;
         hair_constant.strand_particle_count = strand_group->strand_particle_count;
+        hair_constant.strand_count = strand_group->strand_count;
         ez_push_constants(&hair_constant, sizeof(HairConstantBlock), 0);
 
         ez_bind_buffer(0, _renderer->_view_buffer, _renderer->_view_buffer->size);
-        ez_bind_buffer(1, strand_group->position_buffer, strand_group->position_buffer->size);
+        ez_bind_buffer(1, strand_group->root_position_buffer, strand_group->root_position_buffer->size);
         ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
         ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         ez_draw_indexed(strand_group->index_count, 0, 0);
