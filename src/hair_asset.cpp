@@ -145,7 +145,12 @@ HairInstance* HairAsset::create_instance()
         strand_group_ins->strand_count = strand_group->strand_count;
         strand_group_ins->strand_particle_count = strand_group->strand_particle_count;
         strand_group_ins->index_count = strand_group->indices.size();
-        strand_group_ins->root_position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->position_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->position_pre_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->position_corr_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->velocity_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec4), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->velocity_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec4), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->index_buffer = create_rw_buffer(strand_group->indices.data(), strand_group->indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         instance->strand_groups.push_back(strand_group_ins);
     }

@@ -25,7 +25,12 @@ public:
         int strand_particle_count = 0;
         int index_count = 0;
         EzBuffer index_buffer = VK_NULL_HANDLE;
-        EzBuffer root_position_buffer = VK_NULL_HANDLE;
+        EzBuffer position_buffer = VK_NULL_HANDLE;
+        EzBuffer position_pre_buffer = VK_NULL_HANDLE;
+        EzBuffer position_pre_pre_buffer = VK_NULL_HANDLE;
+        EzBuffer position_corr_buffer = VK_NULL_HANDLE;
+        EzBuffer velocity_buffer = VK_NULL_HANDLE;
+        EzBuffer velocity_pre_buffer = VK_NULL_HANDLE;
     };
 
     std::vector<StrandGroup*> strand_groups;

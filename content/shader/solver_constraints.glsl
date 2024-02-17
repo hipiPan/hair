@@ -1,0 +1,4 @@
+#ifndef SOLVER_CONSTRAINTS_H
+#define SOLVER_CONSTRAINTS_H
+
+#endif
