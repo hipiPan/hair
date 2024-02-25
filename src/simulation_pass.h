@@ -1,7 +1,14 @@
 #pragma once
 #include <rhi/ez_vulkan.h>
+#include <glm/glm.hpp>
 
 class Renderer;
+
+struct SolverData
+{
+    glm::vec4 world_gravity;
+    float dt;
+};
 
 class SimulationPass
 {
@@ -17,8 +24,14 @@ public:
 private:
     void initialize();
 
+    void create_solver_data_buffer();
+
+    void update_solver_data_buffer();
+
 private:
     Renderer* _renderer;
     bool _initialized = false;
     float _accumulation_time = 0.0f;
+    SolverData _solver_data;
+    EzBuffer _solver_data_buffer = VK_NULL_HANDLE;
 };

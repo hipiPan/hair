@@ -14,6 +14,7 @@ public:
     public:
         int strand_count = 0;
         int strand_particle_count = 0;
+        std::vector<glm::vec3> root_positions;
         std::vector<glm::vec3> positions;
         std::vector<uint32_t> indices;
     };

@@ -21,10 +21,13 @@ public:
         StrandGroup() = default;
         ~StrandGroup();
 
+        void swap_buffers();
+
         int strand_count = 0;
         int strand_particle_count = 0;
         int index_count = 0;
         EzBuffer index_buffer = VK_NULL_HANDLE;
+        EzBuffer root_position_buffer = VK_NULL_HANDLE;
         EzBuffer position_buffer = VK_NULL_HANDLE;
         EzBuffer position_pre_buffer = VK_NULL_HANDLE;
         EzBuffer position_pre_pre_buffer = VK_NULL_HANDLE;

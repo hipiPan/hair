@@ -62,6 +62,7 @@ HairAsset* HairAsset::Builder::build()
 
         strand_group->strand_count++;
         strand_group->strand_particle_count = vertex_count;
+        strand_group->root_positions.push_back(_positions[vertex_offset]);
         for (int j = vertex_offset; j < vertex_offset + vertex_count; ++j)
         {
             strand_group->positions.push_back(_positions[j]);
@@ -145,6 +146,7 @@ HairInstance* HairAsset::create_instance()
         strand_group_ins->strand_count = strand_group->strand_count;
         strand_group_ins->strand_particle_count = strand_group->strand_particle_count;
         strand_group_ins->index_count = strand_group->indices.size();
+        strand_group_ins->root_position_buffer = create_rw_buffer(strand_group->root_positions.data(), strand_group->root_positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_pre_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);

@@ -20,14 +20,6 @@ layout(std430, binding = 1) restrict readonly buffer VertexDataBufferBlock
     Vertex data[];
 } vertex_data_buffer;
 
-layout(push_constant) uniform ConstantBlock
-{
-    uint strand_count;
-    uint strand_particle_count;
-    uint strand_particle_stride;
-    float particle_diameter;
-} constant;
-
 vec3 load_position(uint i)
 {
     return vec3(vertex_data_buffer.data[i].x, vertex_data_buffer.data[i].y, vertex_data_buffer.data[i].z);
