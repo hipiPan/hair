@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "hair_shader_defs.glsl"
+#include "solver_constraints.h"
 
 layout(std430, binding = 0) restrict writeonly buffer PositionDataBufferBlock
 {
@@ -78,8 +79,21 @@ void main()
     uint iterations = 2;
     for (uint iteration = 0; iteration != iterations; iteration++)
     {
-        // Distance constraint
+        // LRA distance constraint
         {
+
+        }
+
+        // Distance constraint
+        for (uint i = strand_particle_begin + constant.strand_particle_stride; i != strand_particle_end; i += constant.strand_particle_stride)
+        {
+            vec3 d0, d1;
+
+            // Root+1
+            vec3 p0 = position_data_buffer.data[strand_particle_begin];
+            vec3 p1 = position_data_buffer.data[strand_particle_begin + constant.strand_particle_stride];
+
+            // Root+2..
 
         }
     }

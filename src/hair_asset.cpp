@@ -60,18 +60,36 @@ HairAsset* HairAsset::Builder::build()
             strand_group_dict[vertex_count] = strand_group;
         }
 
+        float strand_length = 0.0f;
         strand_group->strand_count++;
         strand_group->strand_particle_count = vertex_count;
         strand_group->root_positions.push_back(_positions[vertex_offset]);
+        strand_group->root_scales.push_back(1.0f);
         for (int j = vertex_offset; j < vertex_offset + vertex_count; ++j)
         {
+            if (j > vertex_offset)
+            {
+                strand_length += glm::distance(_positions[j - 1], _positions[j]);
+            }
             strand_group->positions.push_back(_positions[j]);
         }
+
+        if (strand_length >= strand_group->max_strand_length)
+            strand_group->max_strand_length = strand_length;
+        strand_group->lengths.push_back(strand_length);
     }
 
     for (auto iter : strand_group_dict)
     {
         strand_group = iter.second;
+
+        strand_group->max_strand_length_interval = strand_group->max_strand_length / (strand_group->strand_particle_count - 1);
+
+        // Build Scales
+        for (int i = 0; i < strand_group->strand_count; ++i)
+        {
+            strand_group->root_scales[i] = strand_group->lengths[i] / strand_group->max_strand_length;
+        }
 
         // Build indices
         int strand_particle_count = strand_group->strand_particle_count;
@@ -145,8 +163,10 @@ HairInstance* HairAsset::create_instance()
         HairInstance::StrandGroup* strand_group_ins = new HairInstance::StrandGroup();
         strand_group_ins->strand_count = strand_group->strand_count;
         strand_group_ins->strand_particle_count = strand_group->strand_particle_count;
+        strand_group_ins->max_strand_length_interval = strand_group->max_strand_length_interval;
         strand_group_ins->index_count = strand_group->indices.size();
         strand_group_ins->root_position_buffer = create_rw_buffer(strand_group->root_positions.data(), strand_group->root_positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        strand_group_ins->root_scale_buffer = create_rw_buffer(strand_group->root_scales.data(), strand_group->root_scales.size() * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_buffer = create_rw_buffer(strand_group->positions.data(), strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->position_pre_pre_buffer = create_rw_buffer(nullptr, strand_group->positions.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);

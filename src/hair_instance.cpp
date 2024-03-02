@@ -6,6 +6,8 @@ HairInstance::StrandGroup::~StrandGroup()
         ez_destroy_buffer(index_buffer);
     if (root_position_buffer)
         ez_destroy_buffer(root_position_buffer);
+    if (root_scale_buffer)
+        ez_destroy_buffer(root_scale_buffer);
     if (position_buffer)
         ez_destroy_buffer(position_buffer);
     if (position_pre_buffer)

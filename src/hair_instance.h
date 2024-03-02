@@ -25,9 +25,11 @@ public:
 
         int strand_count = 0;
         int strand_particle_count = 0;
+        float max_strand_length_interval  = 0.0f;
         int index_count = 0;
         EzBuffer index_buffer = VK_NULL_HANDLE;
         EzBuffer root_position_buffer = VK_NULL_HANDLE;
+        EzBuffer root_scale_buffer = VK_NULL_HANDLE;
         EzBuffer position_buffer = VK_NULL_HANDLE;
         EzBuffer position_pre_buffer = VK_NULL_HANDLE;
         EzBuffer position_pre_pre_buffer = VK_NULL_HANDLE;
