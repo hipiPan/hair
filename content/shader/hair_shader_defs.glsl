@@ -8,6 +8,7 @@ layout(push_constant) uniform ConstantBlock
     uint strand_count;
     uint strand_particle_count;
     uint strand_particle_stride;
+    float max_strand_length_interval;
     float particle_diameter;
 } constant;
 

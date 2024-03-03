@@ -6,6 +6,7 @@ struct HairConstantBlock
     uint32_t strand_count;
     uint32_t strand_particle_count;
     uint32_t strand_particle_stride;
+    float max_strand_length_interval;
     float particle_diameter;
 };
 
