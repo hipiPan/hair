@@ -1,7 +1,7 @@
 #pragma once
 #include <rhi/ez_vulkan.h>
 
-struct HairConstantBlock
+struct HairConstant
 {
     uint32_t strand_count;
     uint32_t strand_particle_count;
@@ -24,9 +24,7 @@ public:
 
         void swap_buffers();
 
-        int strand_count = 0;
-        int strand_particle_count = 0;
-        float max_strand_length_interval  = 0.0f;
+        HairConstant constant;
         int index_count = 0;
         EzBuffer index_buffer = VK_NULL_HANDLE;
         EzBuffer root_position_buffer = VK_NULL_HANDLE;

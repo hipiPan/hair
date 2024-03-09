@@ -2,29 +2,29 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "hair_shader_defs.glsl"
-#include "solver_constraints.h"
+#include "solver_constraints.glsl"
 
-layout(std430, binding = 0) restrict writeonly buffer PositionDataBufferBlock
+layout(std430, binding = 0) restrict buffer PositionDataBufferBlock
 {
     vec3 data[];
 } position_data_buffer;
 
-layout(std430, binding = 1) restrict writeonly buffer PositionPreDataBufferBlock
+layout(std430, binding = 1) restrict buffer PositionPreDataBufferBlock
 {
     vec3 data[];
 } position_pre_data_buffer;
 
-layout(std430, binding = 2) restrict writeonly buffer PositionPrePreDataBufferBlock
+layout(std430, binding = 2) restrict buffer PositionPrePreDataBufferBlock
 {
     vec3 data[];
 } position_pre_pre_data_buffer;
 
-layout(std430, binding = 3) restrict writeonly buffer VelocityDataBufferBlock
+layout(std430, binding = 3) restrict buffer VelocityDataBufferBlock
 {
     vec4 data[];
 } velocity_data_buffer;
 
-layout(std430, binding = 4) restrict writeonly buffer VelocityPreDataBufferBlock
+layout(std430, binding = 4) restrict buffer VelocityPreDataBufferBlock
 {
     vec4 data[];
 } velocity_pre_data_buffer;
@@ -58,6 +58,25 @@ vec3 integrate_position_second_order(float dt, vec3 x0, vec3 x0_minus1, vec3 v0,
     );
 }
 
+vec3 derive_velocity_second_order(float dt, vec3 x1, vec3 x0, vec3 x0_minus1)
+{
+    // Second order velocity update
+    // http://www.cs.ubc.ca/~rbridson/docs/english-siggraph08-cloth.pdf
+    return (
+        (3.0 / 2.0) * x1 -
+        (2.0 / 1.0) * x0 +
+        (1.0 / 2.0) * x0_minus1
+    ) / dt;
+}
+
+void derive_particle_velocity(uint particle_index, out vec3 x1, out vec3 v1)
+{
+    x1 = position_data_buffer.data[particle_index];
+    vec3 x0 = position_pre_data_buffer.data[particle_index];
+    vec3 x0_minus1 = position_pre_pre_data_buffer.data[particle_index];
+    v1 = derive_velocity_second_order(solver_data_buffer.dt, x1, x0, x0_minus1);
+}
+
 float get_particle_interval(uint strand_index)
 {
     return constant.max_strand_length_interval * root_scale_data_buffer.data[strand_index];
@@ -78,10 +97,10 @@ void main()
     for (uint i = strand_particle_begin + constant.strand_particle_stride; i != strand_particle_end; i += constant.strand_particle_stride)
     {
         vec3 x0 = position_pre_data_buffer.data[i];
-        vec3 v0 = velocity_pre_data_buffer.data[i];
+        vec3 v0 = velocity_pre_data_buffer.data[i].xyz;
         vec3 x0_minus1 = position_pre_pre_data_buffer.data[i];
-        vec3 v0_minus1 = velocity_data_buffer.data[i];
-        vec3 a = solver_data_buffer.world_gravity.xyz;
+        vec3 v0_minus1 = velocity_data_buffer.data[i].xyz;
+        vec3 a0 = solver_data_buffer.world_gravity.xyz;
         position_data_buffer.data[i] = integrate_position_second_order(solver_data_buffer.dt, x0, x0_minus1, v0, v0_minus1, a0);
     }
 
@@ -130,5 +149,27 @@ void main()
 
             position_data_buffer.data[strand_particle_end - constant.strand_particle_stride] = p1;
         }
+    }
+
+    // Update velocities
+    {
+        // Root
+        vec3 p0, v0, p1, v1;
+        derive_particle_velocity(strand_particle_begin, p0, v0);
+
+        // Root+1
+        for (uint i = strand_particle_begin + constant.strand_particle_stride; i != strand_particle_end; i += constant.strand_particle_stride)
+        {
+            derive_particle_velocity(i, p1, v1);
+
+            // TODO: Damping
+            velocity_data_buffer.data[i-constant.strand_particle_stride].xyz = v0;
+
+            p0 = p1;
+            v0 = v1;
+        }
+
+        // N-1
+        velocity_data_buffer.data[strand_particle_end-constant.strand_particle_stride].xyz = v0;
     }
 }

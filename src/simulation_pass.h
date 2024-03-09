@@ -24,6 +24,8 @@ public:
 private:
     void initialize();
 
+    void solver(int step_count);
+
     void create_solver_data_buffer();
 
     void update_solver_data_buffer();

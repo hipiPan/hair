@@ -43,15 +43,9 @@ void ShadingPass::execute()
     ez_set_fragment_shader(ShaderManager::get()->get_shader("shader://hair_shading.frag"));
 
     HairInstance* hair_instance = _renderer->_hair_instance;
-    HairConstantBlock hair_constant{};
-    hair_constant.particle_diameter = 0.02f;
     for (auto strand_group : hair_instance->strand_groups)
     {
-        hair_constant.strand_particle_stride = 1;
-        hair_constant.strand_particle_count = strand_group->strand_particle_count;
-        hair_constant.strand_count = strand_group->strand_count;
-        ez_push_constants(&hair_constant, sizeof(HairConstantBlock), 0);
-
+        ez_push_constants(&strand_group->constant, sizeof(HairConstant), 0);
         ez_bind_buffer(0, _renderer->_view_buffer, _renderer->_view_buffer->size);
         ez_bind_buffer(1, strand_group->position_buffer, strand_group->position_buffer->size);
         ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
