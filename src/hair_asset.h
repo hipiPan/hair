@@ -16,9 +16,9 @@ public:
         int strand_particle_count = 0;
         float max_strand_length = 0.0f;
         float max_strand_length_interval  = 0.0f;
-        std::vector<glm::vec3> root_positions;
+        std::vector<glm::vec4> root_positions;
         std::vector<float> root_scales;
-        std::vector<glm::vec3> positions;
+        std::vector<glm::vec4> positions;
         std::vector<uint32_t> indices;
         std::vector<float> lengths;
     };

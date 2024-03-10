@@ -40,4 +40,20 @@ void solve_distance_lra_constraint(
     d1 -= r;
 }
 
+void apply_distance_constraint(const float distance0, const float stiffness, const float w0, const float w1, inout vec3 p0, inout vec3 p1)
+{
+    vec3 d0 = vec3(0.0);
+    vec3 d1 = vec3(0.0);
+    solve_distance_constraint(distance0, stiffness, w0, w1, p0, p1, d0, d1);
+    p0 += d0;
+    p1 += d1;
+}
+
+void apply_distance_lra_constraint(const float distance_max, const vec3 p0, inout vec3 p1)
+{
+    vec3 d1 = vec3(0.0);
+    solve_distance_lra_constraint(distance_max, p0, p1, d1);
+    p1 += d1;
+}
+
 #endif

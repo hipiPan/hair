@@ -23,6 +23,7 @@ public:
         ~StrandGroup();
 
         void swap_buffers();
+        void sync_buffers();
 
         HairConstant constant;
         int index_count = 0;

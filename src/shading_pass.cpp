@@ -16,6 +16,12 @@ void ShadingPass::execute()
 {
     ez_reset_pipeline_state();
 
+    HairInstance* hair_instance = _renderer->_hair_instance;
+    for (auto strand_group : hair_instance->strand_groups)
+    {
+        strand_group->sync_buffers();
+    }
+
     VkImageMemoryBarrier2 rt_barriers[2];
     rt_barriers[0] = ez_image_barrier(_renderer->_color_rt, EZ_RESOURCE_STATE_RENDERTARGET);
     rt_barriers[1] = ez_image_barrier(_renderer->_depth_rt, EZ_RESOURCE_STATE_DEPTH_WRITE);
@@ -42,12 +48,11 @@ void ShadingPass::execute()
     ez_set_vertex_shader(ShaderManager::get()->get_shader("shader://hair_shading.vert"));
     ez_set_fragment_shader(ShaderManager::get()->get_shader("shader://hair_shading.frag"));
 
-    HairInstance* hair_instance = _renderer->_hair_instance;
     for (auto strand_group : hair_instance->strand_groups)
     {
         ez_push_constants(&strand_group->constant, sizeof(HairConstant), 0);
-        ez_bind_buffer(0, _renderer->_view_buffer, _renderer->_view_buffer->size);
-        ez_bind_buffer(1, strand_group->position_buffer, strand_group->position_buffer->size);
+        ez_bind_buffer(0, _renderer->_view_buffer);
+        ez_bind_buffer(1, strand_group->position_buffer);
         ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
         ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         ez_draw_indexed(strand_group->index_count, 0, 0);

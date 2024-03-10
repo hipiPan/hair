@@ -12,7 +12,7 @@ layout(std140, binding = 0) uniform ViewBuffer
 
 struct Vertex
 {
-    float x, y, z;
+    float x, y, z, w;
 };
 
 layout(std430, binding = 1) restrict readonly buffer VertexDataBufferBlock

@@ -78,6 +78,8 @@ void SimulationPass::initialize()
     for (int i = 0; i < _renderer->_hair_instance->strand_groups.size(); ++i)
     {
         auto strand_group = _renderer->_hair_instance->strand_groups[i];
+        strand_group->sync_buffers();
+
         num_x = (strand_group->constant.strand_count + PARTICLE_GROUP_SIZE - 1) / PARTICLE_GROUP_SIZE;
         num_y = 1;
         num_z = 1;
@@ -104,6 +106,9 @@ void SimulationPass::solver(int step_count)
         for (int j = 0; j < _renderer->_hair_instance->strand_groups.size(); ++j)
         {
             auto strand_group = _renderer->_hair_instance->strand_groups[j];
+            strand_group->sync_buffers();
+            strand_group->swap_buffers();
+
             num_x = (strand_group->constant.strand_count + PARTICLE_GROUP_SIZE - 1) / PARTICLE_GROUP_SIZE;
             num_y = 1;
             num_z = 1;
@@ -120,8 +125,6 @@ void SimulationPass::solver(int step_count)
             ez_set_compute_shader(ShaderManager::get()->get_shader("shader://hair_sim_solver.comp"));
 
             ez_dispatch(num_x, num_y, num_z);
-            strand_group->swap_buffers();
         }
     }
-
 }

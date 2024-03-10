@@ -5,17 +5,17 @@
 
 layout(std430, binding = 0) restrict readonly buffer PositionDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_data_buffer;
 
 layout(std430, binding = 1) restrict writeonly buffer PositionPreDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_pre_data_buffer;
 
 layout(std430, binding = 2) restrict writeonly buffer PositionPrePreDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_pre_pre_data_buffer;
 
 layout(std430, binding = 3) restrict writeonly buffer VelocityDataBufferBlock
@@ -39,9 +39,9 @@ void main()
     uint strand_particle_end = strand_particle_begin + constant.strand_particle_count;
     for (uint i = strand_particle_begin; i != strand_particle_end; i += constant.strand_particle_stride)
     {
-        vec3 orig_position = position_data_buffer.data[i];
-        position_pre_data_buffer.data[i] = orig_position;
-        position_pre_pre_data_buffer.data[i] = orig_position;
+        vec3 orig_position = position_data_buffer.data[i].xyz;
+        position_pre_data_buffer.data[i].xyz = orig_position;
+        position_pre_pre_data_buffer.data[i].xyz = orig_position;
         velocity_data_buffer.data[i] = vec4(0.0, 0.0, 0.0, 0.2); // xyz: velocity, w: splatting weight
         velocity_pre_data_buffer.data[i] = vec4(0.0, 0.0, 0.0, 0.2); // xyz: velocity, w: splatting weight
     }

@@ -6,17 +6,17 @@
 
 layout(std430, binding = 0) restrict buffer PositionDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_data_buffer;
 
 layout(std430, binding = 1) restrict buffer PositionPreDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_pre_data_buffer;
 
 layout(std430, binding = 2) restrict buffer PositionPrePreDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } position_pre_pre_data_buffer;
 
 layout(std430, binding = 3) restrict buffer VelocityDataBufferBlock
@@ -31,7 +31,7 @@ layout(std430, binding = 4) restrict buffer VelocityPreDataBufferBlock
 
 layout(std430, binding = 5) restrict readonly buffer RootPositionDataBufferBlock
 {
-    vec3 data[];
+    vec4 data[];
 } root_position_data_buffer;
 
 layout(std430, binding = 6) restrict readonly buffer RootScaleDataBufferBlock
@@ -71,9 +71,9 @@ vec3 derive_velocity_second_order(float dt, vec3 x1, vec3 x0, vec3 x0_minus1)
 
 void derive_particle_velocity(uint particle_index, out vec3 x1, out vec3 v1)
 {
-    x1 = position_data_buffer.data[particle_index];
-    vec3 x0 = position_pre_data_buffer.data[particle_index];
-    vec3 x0_minus1 = position_pre_pre_data_buffer.data[particle_index];
+    x1 = position_data_buffer.data[particle_index].xyz;
+    vec3 x0 = position_pre_data_buffer.data[particle_index].xyz;
+    vec3 x0_minus1 = position_pre_pre_data_buffer.data[particle_index].xyz;
     v1 = derive_velocity_second_order(solver_data_buffer.dt, x1, x0, x0_minus1);
 }
 
@@ -96,12 +96,12 @@ void main()
     position_data_buffer.data[strand_particle_begin] = root_position_data_buffer.data[strand_index];
     for (uint i = strand_particle_begin + constant.strand_particle_stride; i != strand_particle_end; i += constant.strand_particle_stride)
     {
-        vec3 x0 = position_pre_data_buffer.data[i];
+        vec3 x0 = position_pre_data_buffer.data[i].xyz;
         vec3 v0 = velocity_pre_data_buffer.data[i].xyz;
-        vec3 x0_minus1 = position_pre_pre_data_buffer.data[i];
+        vec3 x0_minus1 = position_pre_pre_data_buffer.data[i].xyz;
         vec3 v0_minus1 = velocity_data_buffer.data[i].xyz;
         vec3 a0 = solver_data_buffer.world_gravity.xyz;
-        position_data_buffer.data[i] = integrate_position_second_order(solver_data_buffer.dt, x0, x0_minus1, v0, v0_minus1, a0);
+        position_data_buffer.data[i].xyz = integrate_position_second_order(solver_data_buffer.dt, x0, x0_minus1, v0, v0_minus1, a0);
     }
 
     // Solve constraints(Gauss-Seidel iteration)
@@ -110,44 +110,38 @@ void main()
     {
         // LRA distance constraint
         {
-            vec3 d1;
-            vec3 p0 = position_data_buffer.data[strand_particle_begin];
+            vec3 p0 = position_data_buffer.data[strand_particle_begin].xyz;
 
             // Root+1
             for (uint i = strand_particle_begin + constant.strand_particle_stride, k = 1; i != strand_particle_end; i += constant.strand_particle_stride, k++)
             {
-                vec3 p1 = position_data_buffer.data[i];
-                solve_distance_lra_constraint(get_particle_interval(strand_index) * k, p0, p1, d1);
-                p1 += d1;
+                vec3 p1 = position_data_buffer.data[i].xyz;
+                apply_distance_lra_constraint(get_particle_interval(strand_index) * k, p0, p1);
 
-                position_data_buffer.data[i] = p1;
+                position_data_buffer.data[i].xyz = p1;
             }
         }
 
         // Distance constraint
         {
-            vec3 d0, d1;
+            float stiffness = 1.0;
 
             // Root+1
-            vec3 p0 = position_data_buffer.data[strand_particle_begin];
-            vec3 p1 = position_data_buffer.data[strand_particle_begin + constant.strand_particle_stride];
-            solve_distance_constraint(get_particle_interval(strand_index), 1.0, 0.0, 1.0, p0, p1, d0, d1);
-            p0 += d0;
-            p1 += d1;
+            vec3 p0 = position_data_buffer.data[strand_particle_begin].xyz;
+            vec3 p1 = position_data_buffer.data[strand_particle_begin + constant.strand_particle_stride].xyz;
+            apply_distance_constraint(get_particle_interval(strand_index), stiffness, 0.0, 1.0, p0, p1);
 
             // Root+2..
             for (uint i = strand_particle_begin + constant.strand_particle_stride * 2; i != strand_particle_end; i += constant.strand_particle_stride)
             {
                 p0 = p1;
-                p1 = position_data_buffer.data[i];
-                solve_distance_constraint(get_particle_interval(strand_index), 1.0, 0.5, 0.5, p0, p1, d0, d1);
-                p0 += d0;
-                p1 += d1;
+                p1 = position_data_buffer.data[i].xyz;
+                apply_distance_constraint(get_particle_interval(strand_index), stiffness, 0.5, 0.5, p0, p1);
 
-                position_data_buffer.data[i - constant.strand_particle_stride] = p0;
+                position_data_buffer.data[i - constant.strand_particle_stride].xyz = p0;
             }
 
-            position_data_buffer.data[strand_particle_end - constant.strand_particle_stride] = p1;
+            position_data_buffer.data[strand_particle_end - constant.strand_particle_stride].xyz = p1;
         }
     }
 
