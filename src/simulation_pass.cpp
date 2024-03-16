@@ -58,6 +58,8 @@ void SimulationPass::execute(float dt)
 
     _solver_data.world_gravity = glm::vec4(0.0f, -9.8f, 0.0f, 1.0f);
     _solver_data.dt = step_dt;
+    _solver_data.damping = 0.5f;
+    _solver_data.damping_interval = 1.0f;
 
     update_solver_data_buffer();
 

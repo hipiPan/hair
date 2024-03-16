@@ -43,6 +43,8 @@ layout(std140, binding = 7) uniform SolverDataBuffer
 {
     vec4 world_gravity;
     float dt;
+    float damping;
+    float damping_interval;
 } solver_data_buffer;
 
 vec3 integrate_position_second_order(float dt, vec3 x0, vec3 x0_minus1, vec3 v0, vec3 v0_minus1, vec3 a0)
@@ -80,6 +82,16 @@ void derive_particle_velocity(uint particle_index, out vec3 x1, out vec3 v1)
 float get_particle_interval(uint strand_index)
 {
     return constant.max_strand_length_interval * root_scale_data_buffer.data[strand_index];
+}
+
+float get_decay_multiplier(float fraction, float interval)
+{
+    return pow(max(1e-5, 1.0 - fraction), solver_data_buffer.dt / interval);
+}
+
+void apply_damping_linear(inout vec3 v)
+{
+    v *= get_decay_multiplier(solver_data_buffer.damping, solver_data_buffer.damping_interval);
 }
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -156,7 +168,9 @@ void main()
         {
             derive_particle_velocity(i, p1, v1);
 
-            // TODO: Damping
+            // Damping
+            apply_damping_linear(v1);
+
             velocity_data_buffer.data[i-constant.strand_particle_stride].xyz = v0;
 
             p0 = p1;

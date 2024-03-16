@@ -8,6 +8,8 @@ struct SolverData
 {
     glm::vec4 world_gravity;
     float dt;
+    float damping;
+    float damping_interval;
 };
 
 class SimulationPass
