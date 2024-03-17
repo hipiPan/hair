@@ -20,6 +20,10 @@ layout(std430, binding = 1) restrict readonly buffer VertexDataBufferBlock
     Vertex data[];
 } vertex_data_buffer;
 
+layout(location = 0) out highp vec3 out_position_ws;
+layout(location = 1) out highp vec3 out_tangent_ws;
+layout(location = 2) out highp vec3 out_normal_ws;
+
 vec3 load_position(uint i)
 {
     return vec3(vertex_data_buffer.data[i].x, vertex_data_buffer.data[i].y, vertex_data_buffer.data[i].z);
@@ -28,6 +32,8 @@ vec3 load_position(uint i)
 struct HairVertexWS
 {
     vec3 position_ws;
+    vec3 tangent_ws;
+    vec3 normal_ws;
 };
 
 HairVertexWS get_hair_vertex_ws()
@@ -61,11 +67,16 @@ HairVertexWS get_hair_vertex_ws()
 
     HairVertexWS v;
     v.position_ws = vertex_position_ws;
+    v.tangent_ws = vertex_tangent_ws;
+    v.normal_ws = vertex_normal_ws;
     return v;
 }
 
 void main() 
 {
     HairVertexWS v = get_hair_vertex_ws();
+    out_position_ws = v.position_ws;
+    out_tangent_ws = v.tangent_ws;
+    out_normal_ws = v.normal_ws;
     gl_Position = view_buffer.proj_matrix * view_buffer.view_matrix * vec4(v.position_ws, 1.0);
 }
