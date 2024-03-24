@@ -67,7 +67,7 @@ HairVertexWS get_hair_vertex_ws()
 
     HairVertexWS v;
     v.position_ws = vertex_position_ws;
-    v.tangent_ws = vertex_tangent_ws;
+    v.tangent_ws = vertex_bitangent_ws;
     v.normal_ws = vertex_normal_ws;
     return v;
 }
