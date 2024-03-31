@@ -42,6 +42,7 @@ int main()
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     GLFWwindow* glfw_window = glfwCreateWindow(init_width, init_height, "hair", nullptr, nullptr);
+    glfwSetWindowPos(glfw_window, 100, 100);
     glfwSetFramebufferSizeCallback(glfw_window, window_size_callback);
     glfwSetCursorPosCallback(glfw_window, cursor_position_callback);
     glfwSetMouseButtonCallback(glfw_window, mouse_button_callback);
@@ -53,12 +54,12 @@ int main()
     ShaderManager::get()->setup();
     ShaderCompiler::get()->setup();
 
-    HairAsset* hair_asset = load_hair_asset(Path::fix_path("hair://hair_01.abc"));
+    HairAsset* hair_asset = load_hair_asset(Path::fix_path("hair://hair_02.abc"));
     HairInstance* hair_instance = hair_asset->create_instance();
 
     Camera* camera = new Camera();
     camera->set_aspect((float)init_width/(float)init_height);
-    camera->set_translation(glm::vec3(0.0f, 0.0f, 20.0f));
+    camera->set_translation(glm::vec3(0.0f, -2.0f, 18.0f));
     camera->set_euler(glm::vec3(0.0f, 0.0f, 0.0f));
     CameraController* camera_controller = new CameraController();
     camera_controller->set_camera(camera);

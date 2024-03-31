@@ -236,7 +236,7 @@ void main()
     float etap = sqrt((eta * eta) - (sin_theta_o * sin_theta_o)) / cos_theta_o;
 
     vec3 hair_color = vec3(0.7, 0.3, 0.1);
-    vec3 sigma_a = vec3(0.06, 0.1, 0.2);
+    vec3 sigma_a = vec3(0.05, 0.1, 0.2);
 
     HairContext ctx;
     ctx.sin_theta_i = sin_theta_i;
@@ -266,12 +266,13 @@ void main()
     vec3 d = albedo / PI;
 
     // Light params
-    vec4 light_color_intensity = vec4(0.85, 0.85, 0.9, 120000.0); // Color and lux
+    vec4 light_color_intensity = vec4(0.85, 0.85, 0.9, 130000.0); // Color and lux
 
     // Camera params
     float exposure = 0.0000260416691;
 
     light_color_intensity.w *= exposure;
-    vec3 color = (d + s) * light_color_intensity.xyz * light_color_intensity.w * clamp(dot(N, L), -1.0, 1.0);
+    vec3 ambient = vec3(0.05);
+    vec3 color = (d + s) * light_color_intensity.xyz * light_color_intensity.w * clamp(dot(N, L), -1.0, 1.0) + ambient;
     out_color = vec4(color, 1.0);
 }

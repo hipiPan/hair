@@ -165,7 +165,7 @@ HairInstance* HairAsset::create_instance()
         strand_group_ins->constant.strand_particle_count = strand_group->strand_particle_count;
         strand_group_ins->constant.strand_particle_stride = 1;
         strand_group_ins->constant.max_strand_length_interval = strand_group->max_strand_length_interval;
-        strand_group_ins->constant.particle_diameter = 0.02f;
+        strand_group_ins->constant.particle_diameter = 0.016f;
         strand_group_ins->index_count = strand_group->indices.size();
         strand_group_ins->root_position_buffer = create_rw_buffer(strand_group->root_positions.data(), strand_group->root_positions.size() * sizeof(glm::vec4), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         strand_group_ins->root_scale_buffer = create_rw_buffer(strand_group->root_scales.data(), strand_group->root_scales.size() * sizeof(float), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
