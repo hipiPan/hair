@@ -18,7 +18,7 @@ ShadingPass::ShadingPass(Renderer* renderer)
     EzTextureDesc desc{};
     desc.width = (uint32_t)SHADOW_RESOLUTION;
     desc.height = (uint32_t)SHADOW_RESOLUTION;
-    desc.format = VK_FORMAT_B8G8R8A8_UNORM;
+    desc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
     desc.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
     ez_create_texture(desc, _deep_shadow_layers_rt);
     ez_create_texture_view(_deep_shadow_layers_rt, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1);
@@ -27,6 +27,12 @@ ShadingPass::ShadingPass(Renderer* renderer)
     desc.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     ez_create_texture(desc, _front_shadow_rt);
     ez_create_texture_view(_front_shadow_rt, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1);
+
+    EzSamplerDesc sampler_desc{};
+    sampler_desc.address_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_desc.address_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_desc.address_w = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    ez_create_sampler(sampler_desc, _sampler);
 }
 
 ShadingPass::~ShadingPass()
@@ -34,6 +40,18 @@ ShadingPass::~ShadingPass()
     ez_destroy_buffer(_render_data_buffer);
     ez_destroy_texture(_front_shadow_rt);
     ez_destroy_texture(_deep_shadow_layers_rt);
+    ez_destroy_sampler(_sampler);
+}
+
+glm::vec4 ShadingPass::compute_deep_shadow_layer_depths(float layer_distribution)
+{
+    const float exponent = glm::clamp(layer_distribution, 0.f, 1.f) * 5.2f + 1;
+    glm::vec4 depths;
+    depths.x = glm::pow(0.2f, exponent);
+    depths.y = glm::pow(0.4f, exponent);
+    depths.z = glm::pow(0.6f, exponent);
+    depths.w = glm::pow(0.8f, exponent);
+    return depths;
 }
 
 void ShadingPass::update_render_data_buffer(HairRenderData data)
@@ -109,7 +127,51 @@ void ShadingPass::front_shadow_pass()
 
 void ShadingPass::deep_opacity_map_pass()
 {
+    HairInstance* hair_instance = _renderer->_hair_instance;
 
+    HairRenderData shadow_render_data{};
+    float ortho_height = glm::max(_renderer->shadow_max_extents.y - _renderer->shadow_min_extents.y, 0.0f);
+    shadow_render_data.radius_at_depth1 = 0.5f * ortho_height / SHADOW_RESOLUTION;
+    shadow_render_data.layer_depths = compute_deep_shadow_layer_depths(1.0f);
+    update_render_data_buffer(shadow_render_data);
+
+    ez_reset_pipeline_state();
+
+    VkImageMemoryBarrier2 barriers[2];
+    barriers[0] = ez_image_barrier(_deep_shadow_layers_rt, EZ_RESOURCE_STATE_RENDERTARGET);
+    barriers[1] = ez_image_barrier(_front_shadow_rt, EZ_RESOURCE_STATE_SHADER_RESOURCE);
+    ez_pipeline_barrier(0, 0, nullptr, 2, barriers);
+
+    EzRenderingAttachmentInfo color_info{};
+    color_info.texture = _deep_shadow_layers_rt;
+    color_info.clear_value.color = {0.0f, 0.0f, 0.0f, 0.0f};
+
+    EzRenderingInfo rendering_info{};
+    rendering_info.width = SHADOW_RESOLUTION;
+    rendering_info.height = SHADOW_RESOLUTION;
+    rendering_info.colors.push_back(color_info);
+    ez_begin_rendering(rendering_info);
+
+    ez_set_viewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+    ez_set_scissor(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
+
+    ez_set_vertex_shader(ShaderManager::get()->get_shader("shader://hair_shading.vert"));
+    ez_set_fragment_shader(ShaderManager::get()->get_shader("shader://hair_dom_shadow.frag"));
+
+    for (auto strand_group : hair_instance->strand_groups)
+    {
+        ez_push_constants(&strand_group->constant, sizeof(HairConstant), 0);
+        ez_bind_buffer(0, _renderer->_shadow_view_buffer);
+        ez_bind_buffer(1, _render_data_buffer);
+        ez_bind_buffer(2, strand_group->position_buffer);
+        ez_bind_texture(3, _front_shadow_rt, 0);
+        ez_bind_sampler(4, _sampler);
+        ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
+        ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        ez_draw_indexed(strand_group->index_count, 0, 0);
+    }
+
+    ez_end_rendering();
 }
 
 void ShadingPass::main_pass()

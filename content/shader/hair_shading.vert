@@ -13,6 +13,7 @@ layout(std140, binding = 0) uniform ViewBuffer
 
 layout(std140, binding = 1) uniform RenderDataBuffer
 {
+    vec4 layer_depths;
     float radius_at_depth1;
 } render_data_buffer;
 
@@ -29,6 +30,8 @@ layout(std430, binding = 2) restrict readonly buffer VertexDataBufferBlock
 layout(location = 0) out highp vec3 out_position_ws;
 layout(location = 1) out highp vec3 out_bitangent_ws;
 layout(location = 2) out highp vec3 out_normal_ws;
+layout(location = 3) out highp vec4 out_position_cs;
+layout(location = 4) out highp float out_coverage;
 
 vec3 load_position(uint i)
 {
@@ -92,5 +95,7 @@ void main()
     out_position_ws = v.position_ws;
     out_bitangent_ws = v.bitangent_ws;
     out_normal_ws = v.normal_ws;
-    gl_Position = view_buffer.proj_matrix * view_buffer.view_matrix * vec4(v.position_ws, 1.0);
+    out_coverage = v.coverage;
+    out_position_cs = view_buffer.proj_matrix * view_buffer.view_matrix * vec4(v.position_ws, 1.0);
+    gl_Position = out_position_cs;
 }
