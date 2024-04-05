@@ -14,6 +14,7 @@ layout(std140, binding = 0) uniform ViewBuffer
     mat4 view_matrix;
     mat4 proj_matrix;
     vec4 view_position;
+    vec4 sun_direction;
 } view_buffer;
 
 // https://pbr-book.org/4ed/Reflection_Models/Scattering_from_Hair
@@ -203,7 +204,7 @@ vec3 hair_bsdf(const HairContext ctx, float h)
 
 void main()
 {
-    vec3 sun_direction = normalize(vec3(0.0, 0.5, -1.0));
+    vec3 sun_direction = normalize(view_buffer.sun_direction.xyz);
     vec3 L = normalize(-sun_direction);
     vec3 V = normalize(view_buffer.view_position.xyz - in_position_ws);
     vec3 T = normalize(in_bitangent_ws);

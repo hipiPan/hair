@@ -8,14 +8,20 @@ layout(std140, binding = 0) uniform ViewBuffer
     mat4 view_matrix;
     mat4 proj_matrix;
     vec4 view_position;
+    vec4 sun_direction;
 } view_buffer;
+
+layout(std140, binding = 1) uniform RenderDataBuffer
+{
+    float radius_at_depth1;
+} render_data_buffer;
 
 struct Vertex
 {
     float x, y, z, w;
 };
 
-layout(std430, binding = 1) restrict readonly buffer VertexDataBufferBlock
+layout(std430, binding = 2) restrict readonly buffer VertexDataBufferBlock
 {
     Vertex data[];
 } vertex_data_buffer;
@@ -34,6 +40,7 @@ struct HairVertexWS
     vec3 position_ws;
     vec3 bitangent_ws;
     vec3 normal_ws;
+    float coverage;
 };
 
 HairVertexWS get_hair_vertex_ws()
@@ -61,7 +68,13 @@ HairVertexWS get_hair_vertex_ws()
 
     float angle = (0.5 - (gl_VertexIndex % 2) * 0.5) * 6.2831853;
     vec2 vertex_offset_2d = vec2(cos(angle), sin(angle));
-    float radius = 0.5 * constant.particle_diameter;
+
+    float strand_radius = 0.5 * constant.particle_diameter;
+    vec4 p_cs = view_buffer.proj_matrix * view_buffer.view_matrix * vec4(p, 1.0);
+    float min_radius = p_cs.w * render_data_buffer.radius_at_depth1;
+    float radius = max(min_radius, strand_radius);
+    float coverage = strand_radius / radius;
+
     vec3 vertex_offset_ws = (radius * vertex_offset_2d.x * vertex_tangent_ws) + (radius * vertex_offset_2d.y * vertex_normal_ws);
     vec3 vertex_position_ws = p + vertex_offset_ws;
 
@@ -69,6 +82,7 @@ HairVertexWS get_hair_vertex_ws()
     v.position_ws = vertex_position_ws;
     v.bitangent_ws = vertex_bitangent_ws;
     v.normal_ws = vertex_normal_ws;
+    v.coverage = coverage;
     return v;
 }
 

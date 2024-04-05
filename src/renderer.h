@@ -10,6 +10,7 @@ struct ViewBufferType
     glm::mat4 view_matrix;
     glm::mat4 proj_matrix;
     glm::vec4 view_position;
+    glm::vec4 sun_direction;
 };
 
 class Renderer
@@ -36,8 +37,15 @@ private:
     Camera* _camera;
     HairInstance* _hair_instance;
     EzBuffer _view_buffer = VK_NULL_HANDLE;
+    EzBuffer _shadow_view_buffer = VK_NULL_HANDLE;
     EzTexture _color_rt = VK_NULL_HANDLE;
     EzTexture _depth_rt = VK_NULL_HANDLE;
+
+    // Light/Shadow
+    glm::vec3 shadow_max_extents;
+    glm::vec3 shadow_min_extents;
+
+    // Passes
     friend class SimulationPass;
     SimulationPass* _simulation_pass = nullptr;
     friend class ShadingPass;

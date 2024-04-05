@@ -15,6 +15,8 @@ public:
 
     void set_fov(float fov);
 
+    float get_fov() const { return _fov; };
+
     void set_near_far(float near, float far);
 
     float get_near() const { return _near; }
