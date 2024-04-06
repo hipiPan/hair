@@ -7,6 +7,7 @@ layout(std140, binding = 0) uniform ViewBuffer
 {
     mat4 view_matrix;
     mat4 proj_matrix;
+    mat4 sun_matrix;
     vec4 view_position;
     vec4 sun_direction;
 } view_buffer;

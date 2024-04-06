@@ -7,19 +7,82 @@
 layout(location = 0) in highp vec3 in_position_ws;
 layout(location = 1) in highp vec3 in_bitangent_ws;
 layout(location = 2) in highp vec3 in_normal_ws;
+layout(location = 4) in highp float in_coverage;
 layout(location = 0) out vec4 out_color;
 
 layout(std140, binding = 0) uniform ViewBuffer
 {
     mat4 view_matrix;
     mat4 proj_matrix;
+    mat4 sun_matrix;
     vec4 view_position;
     vec4 sun_direction;
 } view_buffer;
 
+layout(std140, binding = 1) uniform RenderDataBuffer
+{
+    vec4 layer_depths;
+    float radius_at_depth1;
+} render_data_buffer;
+
+layout(binding = 3) uniform texture2D front_shadow_texture;
+layout(binding = 4) uniform texture2D dom_texture;
+layout(binding = 5) uniform sampler texture_sampler;
+
 // https://pbr-book.org/4ed/Reflection_Models/Scattering_from_Hair
 // https://github.com/mmp/pbrt-v3
 // [Marschner et al. 2003, "Light Scattering from Human Hair Fibers"]
+
+float interpolate_count(float distance_to_front_depth, float layer_depth_0, float layer_depth_1)
+{
+    return clamp((distance_to_front_depth - layer_depth_0) / (layer_depth_1 - layer_depth_0), 0.0, 1.0);
+}
+
+float compute_hair_count(vec4 dom, float distance_to_front_depth)
+{
+    float count = 0.0;
+
+    if (distance_to_front_depth < render_data_buffer.layer_depths.x)
+        count = mix(0.0, dom.x, interpolate_count(distance_to_front_depth, 0.0, render_data_buffer.layer_depths.x));
+    else if (distance_to_front_depth < render_data_buffer.layer_depths.y)
+        count = mix(dom.x, dom.y, interpolate_count(distance_to_front_depth, render_data_buffer.layer_depths.x, render_data_buffer.layer_depths.y));
+    else if (distance_to_front_depth < render_data_buffer.layer_depths.z)
+        count = mix(dom.y, dom.z, interpolate_count(distance_to_front_depth, render_data_buffer.layer_depths.y, render_data_buffer.layer_depths.z));
+    else if (distance_to_front_depth < render_data_buffer.layer_depths.w)
+        count = mix(dom.z, dom.w, interpolate_count(distance_to_front_depth, render_data_buffer.layer_depths.z, render_data_buffer.layer_depths.w));
+    else
+        count = dom.w;
+    return count;
+}
+
+float sample_dom_pcf(vec3 light_space_position)
+{
+    vec2 size = vec2(textureSize(sampler2D(front_shadow_texture, texture_sampler), 0));
+    vec2 texel_size = vec2(1.0) / size;
+    vec2 uv = light_space_position.xy * 0.5 + 0.5;
+    vec2 uv0 = uv;
+    vec2 uv1 = uv + vec2(texel_size.x, 0.0);
+    vec2 uv2 = uv + vec2(0.0, texel_size.y);
+    vec2 uv3 = uv + vec2(texel_size.x, texel_size.y);
+
+    float front_depth0 = texture(sampler2D(front_shadow_texture, texture_sampler), uv0).r;
+    float front_depth1 = texture(sampler2D(front_shadow_texture, texture_sampler), uv1).r;
+    float front_depth2 = texture(sampler2D(front_shadow_texture, texture_sampler), uv2).r;
+    float front_depth3 = texture(sampler2D(front_shadow_texture, texture_sampler), uv3).r;
+
+    vec4 dom0 = texture(sampler2D(dom_texture, texture_sampler), uv0);
+    vec4 dom1 = texture(sampler2D(dom_texture, texture_sampler), uv1);
+    vec4 dom2 = texture(sampler2D(dom_texture, texture_sampler), uv2);
+    vec4 dom3 = texture(sampler2D(dom_texture, texture_sampler), uv3);
+
+    float hair_count_sum = 0.0;
+    hair_count_sum += compute_hair_count(dom0, front_depth0);
+    hair_count_sum += compute_hair_count(dom1, front_depth1);
+    hair_count_sum += compute_hair_count(dom2, front_depth2);
+    hair_count_sum += compute_hair_count(dom3, front_depth3);
+
+    return hair_count_sum * 0.25;
+}
 
 // Modified Bessel function
 float I0(float x)
@@ -267,13 +330,19 @@ void main()
     vec3 d = albedo / PI;
 
     // Light params
-    vec4 light_color_intensity = vec4(0.85, 0.85, 0.9, 130000.0); // Color and lux
+    vec4 light_color_intensity = vec4(0.85, 0.85, 0.9, 140000.0); // Color and lux
 
     // Camera params
     float exposure = 0.0000260416691;
 
+    // Shadow
+    vec4 light_space_position = view_buffer.sun_matrix * vec4(in_position_ws ,1.0);
+    light_space_position /= light_space_position.w;
+    float hair_count = sample_dom_pcf(light_space_position.xyz);
+    float transmittance = pow(0.25, hair_count);
+
     light_color_intensity.w *= exposure;
     vec3 ambient = vec3(0.05);
-    vec3 color = (d + s) * light_color_intensity.xyz * light_color_intensity.w * clamp(dot(N, L), -1.0, 1.0) + ambient;
+    vec3 color = (d + s) * light_color_intensity.xyz * light_color_intensity.w * clamp(dot(N, L), -1.0, 1.0) * transmittance + ambient;
     out_color = vec4(color, 1.0);
 }

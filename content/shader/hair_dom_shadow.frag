@@ -15,7 +15,7 @@ layout(std140, binding = 1) uniform RenderDataBuffer
 } render_data_buffer;
 
 layout(binding = 3) uniform texture2D front_shadow_texture;
-layout(binding = 4) uniform sampler shadow_sampler;
+layout(binding = 5) uniform sampler shadow_sampler;
 
 bool is_depth_closer(float a, float b)
 {

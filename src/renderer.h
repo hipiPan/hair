@@ -9,6 +9,7 @@ struct ViewBufferType
 {
     glm::mat4 view_matrix;
     glm::mat4 proj_matrix;
+    glm::mat4 sun_matrix;
     glm::vec4 view_position;
     glm::vec4 sun_direction;
 };
@@ -40,6 +41,7 @@ private:
     EzBuffer _shadow_view_buffer = VK_NULL_HANDLE;
     EzTexture _color_rt = VK_NULL_HANDLE;
     EzTexture _depth_rt = VK_NULL_HANDLE;
+    EzTexture _resolve_rt = VK_NULL_HANDLE;
 
     // Light/Shadow
     glm::vec3 shadow_max_extents;

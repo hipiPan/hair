@@ -29,6 +29,8 @@ ShadingPass::ShadingPass(Renderer* renderer)
     ez_create_texture_view(_front_shadow_rt, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1);
 
     EzSamplerDesc sampler_desc{};
+    sampler_desc.mag_filter = VK_FILTER_NEAREST;
+    sampler_desc.min_filter = VK_FILTER_NEAREST;
     sampler_desc.address_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler_desc.address_w = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -155,6 +157,19 @@ void ShadingPass::deep_opacity_map_pass()
     ez_set_viewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
     ez_set_scissor(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
 
+    EzDepthState depth_state{};
+    depth_state.depth_test = false;
+    depth_state.depth_write = false;
+    ez_set_depth_state(depth_state);
+
+    EzBlendState blend_state{};
+    blend_state.blend_enable = true;
+    blend_state.src_color = VK_BLEND_FACTOR_ONE;
+    blend_state.dst_color = VK_BLEND_FACTOR_ONE;
+    blend_state.src_alpha = VK_BLEND_FACTOR_ONE;
+    blend_state.dst_alpha = VK_BLEND_FACTOR_ONE;
+    ez_set_blend_state(blend_state);
+
     ez_set_vertex_shader(ShaderManager::get()->get_shader("shader://hair_shading.vert"));
     ez_set_fragment_shader(ShaderManager::get()->get_shader("shader://hair_dom_shadow.frag"));
 
@@ -165,7 +180,7 @@ void ShadingPass::deep_opacity_map_pass()
         ez_bind_buffer(1, _render_data_buffer);
         ez_bind_buffer(2, strand_group->position_buffer);
         ez_bind_texture(3, _front_shadow_rt, 0);
-        ez_bind_sampler(4, _sampler);
+        ez_bind_sampler(5, _sampler);
         ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
         ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         ez_draw_indexed(strand_group->index_count, 0, 0);
@@ -180,18 +195,24 @@ void ShadingPass::main_pass()
 
     HairRenderData main_render_data{};
     main_render_data.radius_at_depth1 = 0.5f * glm::tan(_renderer->_camera->get_fov() * 0.5f) / (0.5f * _renderer->_height);
+    main_render_data.layer_depths = compute_deep_shadow_layer_depths(1.0f);
     update_render_data_buffer(main_render_data);
 
     ez_reset_pipeline_state();
 
-    VkImageMemoryBarrier2 rt_barriers[2];
-    rt_barriers[0] = ez_image_barrier(_renderer->_color_rt, EZ_RESOURCE_STATE_RENDERTARGET);
-    rt_barriers[1] = ez_image_barrier(_renderer->_depth_rt, EZ_RESOURCE_STATE_DEPTH_WRITE);
-    ez_pipeline_barrier(0, 0, nullptr, 2, rt_barriers);
+    VkImageMemoryBarrier2 barriers[5];
+    barriers[0] = ez_image_barrier(_renderer->_color_rt, EZ_RESOURCE_STATE_RENDERTARGET);
+    barriers[1] = ez_image_barrier(_renderer->_depth_rt, EZ_RESOURCE_STATE_DEPTH_WRITE);
+    barriers[2] = ez_image_barrier(_renderer->_resolve_rt, EZ_RESOURCE_STATE_RENDERTARGET);
+    barriers[3] = ez_image_barrier(_front_shadow_rt, EZ_RESOURCE_STATE_SHADER_RESOURCE);
+    barriers[4] = ez_image_barrier(_deep_shadow_layers_rt, EZ_RESOURCE_STATE_SHADER_RESOURCE);
+    ez_pipeline_barrier(0, 0, nullptr, 5, barriers);
 
     EzRenderingAttachmentInfo color_info{};
     color_info.texture = _renderer->_color_rt;
     color_info.clear_value.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    color_info.resolve_texture = _renderer->_resolve_rt;
+    color_info.resolve_mode = VK_RESOLVE_MODE_AVERAGE_BIT;
 
     EzRenderingAttachmentInfo depth_info{};
     depth_info.texture = _renderer->_depth_rt;
@@ -203,6 +224,11 @@ void ShadingPass::main_pass()
     rendering_info.colors.push_back(color_info);
     rendering_info.depth.push_back(depth_info);
     ez_begin_rendering(rendering_info);
+
+    EzMultisampleState ms{};
+    ms.sample_shading = true;
+    ms.samples = VK_SAMPLE_COUNT_4_BIT;
+    ez_set_multisample_state(ms);
 
     ez_set_viewport(0, 0, (float)_renderer->_width, (float)_renderer->_height);
     ez_set_scissor(0, 0, (int32_t)_renderer->_width, (int32_t)_renderer->_height);
@@ -216,6 +242,9 @@ void ShadingPass::main_pass()
         ez_bind_buffer(0, _renderer->_view_buffer);
         ez_bind_buffer(1, _render_data_buffer);
         ez_bind_buffer(2, strand_group->position_buffer);
+        ez_bind_texture(3, _front_shadow_rt, 0);
+        ez_bind_texture(4, _deep_shadow_layers_rt, 0);
+        ez_bind_sampler(5, _sampler);
         ez_bind_index_buffer(strand_group->index_buffer, VK_INDEX_TYPE_UINT32);
         ez_set_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
         ez_draw_indexed(strand_group->index_count, 0, 0);

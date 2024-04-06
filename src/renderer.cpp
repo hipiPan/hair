@@ -29,8 +29,10 @@ Renderer::~Renderer()
         ez_destroy_buffer(_shadow_view_buffer);
     if (_color_rt)
         ez_destroy_texture(_color_rt);
-    if(_depth_rt)
+    if (_depth_rt)
         ez_destroy_texture(_depth_rt);
+    if (_resolve_rt)
+        ez_destroy_texture(_resolve_rt);
 }
 
 void Renderer::set_hair_instance(HairInstance* ins)
@@ -50,6 +52,13 @@ void Renderer::update_rendertarget()
     desc.height = _height;
     desc.format = VK_FORMAT_B8G8R8A8_UNORM;
     desc.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+
+    if (_resolve_rt)
+        ez_destroy_texture(_resolve_rt);
+    ez_create_texture(desc, _resolve_rt);
+    ez_create_texture_view(_resolve_rt, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1);
+    desc.samples = VK_SAMPLE_COUNT_4_BIT;
+
     if (_color_rt)
         ez_destroy_texture(_color_rt);
     ez_create_texture(desc, _color_rt);
@@ -65,18 +74,7 @@ void Renderer::update_rendertarget()
 
 void Renderer::update_view_buffer()
 {
-    glm::vec3 sun_direction = glm::vec3(0.0f, 0.5f, -1.0f);
-
-    // Main view
-    glm::mat4 proj_matrix = _camera->get_proj_matrix();
-    glm::mat4 view_matrix = _camera->get_view_matrix();
-    ViewBufferType view_buffer_type{};
-    view_buffer_type.view_matrix = view_matrix;
-    view_buffer_type.proj_matrix = proj_matrix;
-    view_buffer_type.view_position = glm::vec4(_camera->get_translation(), 1.0f);
-    view_buffer_type.sun_direction = glm::vec4(sun_direction, 1.0);
-
-    // Shadow view
+    glm::vec3 sun_direction = glm::vec3(0.3f, 0.5f, -1.0f);
     glm::vec3 center = glm::vec3(0.0f, 0.0f, 5.0f);
     float radius = 5.0f;
     glm::vec3 max_extents = glm::vec3(radius);
@@ -84,14 +82,27 @@ void Renderer::update_view_buffer()
     glm::mat4 light_view_matrix = glm::lookAt(center - sun_direction * -min_extents.z, center, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 light_model_matrix = glm::inverse(light_view_matrix);
     glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, 0.0f, max_extents.z - min_extents.z);
+    glm::mat4 sun_matrix = light_ortho_matrix * light_view_matrix;
     shadow_min_extents = min_extents;
     shadow_max_extents = max_extents;
 
+    // Shadow view
     ViewBufferType shadow_view_buffer_type{};
     shadow_view_buffer_type.view_matrix = light_view_matrix;
     shadow_view_buffer_type.proj_matrix = light_ortho_matrix;
+    shadow_view_buffer_type.sun_matrix = sun_matrix;
     shadow_view_buffer_type.view_position =  glm::vec4(glm::vec3(light_model_matrix[3][0], light_model_matrix[3][1], light_model_matrix[3][2]), 1.0f);
     shadow_view_buffer_type.sun_direction = glm::vec4(sun_direction, 1.0);
+
+    // Main view
+    glm::mat4 proj_matrix = _camera->get_proj_matrix();
+    glm::mat4 view_matrix = _camera->get_view_matrix();
+    ViewBufferType view_buffer_type{};
+    view_buffer_type.view_matrix = view_matrix;
+    view_buffer_type.proj_matrix = proj_matrix;
+    view_buffer_type.sun_matrix = sun_matrix;
+    view_buffer_type.view_position = glm::vec4(_camera->get_translation(), 1.0f);
+    view_buffer_type.sun_direction = glm::vec4(sun_direction, 1.0);
 
     VkBufferMemoryBarrier2 barriers[2];
     barriers[0] = ez_buffer_barrier(_view_buffer, EZ_RESOURCE_STATE_COPY_DEST);
@@ -127,7 +138,7 @@ void Renderer::render(EzSwapchain swapchain, float dt)
     _shading_pass->execute();
 
     // Copy to swapchain
-    EzTexture src_rt = _color_rt;
+    EzTexture src_rt = _resolve_rt;
     VkImageMemoryBarrier2 copy_barriers[] = {
         ez_image_barrier(src_rt, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT),
         ez_image_barrier(swapchain, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT),
